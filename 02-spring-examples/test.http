@@ -1,0 +1,20 @@
+GET http://localhost:8080/api/foo/products HTTP/1.1
+
+###
+
+GET http://localhost:8080/api/foo/product HTTP/1.1
+
+###
+
+GET http://localhost:8080/api/foo/hello HTTP/1.1
+
+###
+
+GET http://localhost:8080/api/foo/hello/Ich HTTP/1.1
+
+###
+
+POST http://localhost:8080/api/foo/hello HTTP/1.1
+Content-Type: application/json
+
+{"msg":  "Hello, Universe!"}
