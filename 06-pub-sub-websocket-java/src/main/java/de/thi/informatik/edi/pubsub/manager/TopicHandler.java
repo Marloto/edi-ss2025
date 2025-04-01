@@ -1,11 +1,8 @@
 package de.thi.informatik.edi.pubsub.manager;
 
-import org.springframework.stereotype.Service;
-
 import java.util.HashMap;
 import java.util.Map;
 
-@Service
 public class TopicHandler {
     Map<String, Topic> topics;
 

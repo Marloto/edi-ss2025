@@ -1,4 +1,4 @@
-package de.thi.informatik.edi.pubsub;
+package de.thi.informatik.edi.pubsub.manager;
 
 import org.springframework.stereotype.Service;
 
