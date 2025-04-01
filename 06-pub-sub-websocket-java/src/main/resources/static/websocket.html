@@ -161,7 +161,7 @@
 
         // WebSocket-URL erstellen (direkt mit Topic im Pfad)
         const wsUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
-            window.location.host + '/socket/' + topic;
+            'localhost:7071/' + topic;
 
         // WebSocket erstellen
         socket = new WebSocket(wsUrl);
