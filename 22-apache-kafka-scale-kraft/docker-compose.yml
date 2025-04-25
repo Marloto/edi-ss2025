@@ -64,10 +64,10 @@ services:
     volumes:
       - ./kui/config.yml:/etc/kafkaui/dynamic_config.yaml
 
-  # shop:
-  #   image: quay.io/cloudhut/owl-shop
-  #   environment:
-  #     - SHOP_KAFKA_BROKERS=kafka1:19092,kafka2:19093,kafka3:19094
-  #     - SHOP_KAFKA_TOPICREPLICATIONFACTOR=1
-  #     - SHOP_TRAFFIC_INTERVAL_RATE=10
-  #     - SHOP_TRAFFIC_INTERVAL_DURATION=0.1s
+volumes:
+  kafka1_data:
+    driver: local
+  kafka2_data:
+    driver: local
+  kafka3_data:
+    driver: local
