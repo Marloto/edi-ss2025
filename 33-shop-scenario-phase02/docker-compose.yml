@@ -1,6 +1,6 @@
 version: "3"
 services:
-  # Starts kafka broker
+  # Starts zookeeper
   kafka:
     image: 'bitnami/kafka:3.6.0'
     ports:
@@ -22,7 +22,7 @@ services:
 
   # Init script for topics, might be changed
   init-kafka:
-    image: 'bitnami/kafka:3.6.0'
+    image: 'bitnami/kafka:3.4'
     depends_on:
       - kafka
     entrypoint: [ '/bin/sh', '-c' ]
