@@ -18,9 +18,13 @@ import org.springframework.core.task.TaskExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 @Service
 public class MessageConsumerService {
+
+	private Flux<ConsumerRecord<String, String>> flux;
 
 	public static interface MessageConsumerServiceHandler {
 		public void handle(String topic, String key, String value);
@@ -67,6 +71,9 @@ public class MessageConsumerService {
 	private void start() {
 		if(!this.running) {
 			logger.info("Start consumer thread");
+			// Senke erzeugen, in die wir Messages vom Broker emittieren
+			Sinks.Many<ConsumerRecord<String, String>> many = Sinks.many().multicast().onBackpressureBuffer();
+
 			this.running = true;
 			this.executor.execute(() -> {
 				while (running) {
@@ -78,7 +85,10 @@ public class MessageConsumerService {
 					try {
 						if(consumer.subscription().size() > 0) {
 							ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
-							records.forEach(el -> handle(el));
+							records.forEach(el -> {
+								many.tryEmitNext(el); // Messages an Senke übergeben
+								handle(el);
+							});
 							consumer.commitSync();
 						} else {
 							Thread.sleep(1000);
@@ -88,14 +98,24 @@ public class MessageConsumerService {
 					}
 				}
 			});
+
+			this.flux = many.asFlux();  // muss dafür ergänzt werden: private Flux<ConsumerRecord<String, String>> flux;
 		}
 	}
 
-	public synchronized void register(String topic, MessageConsumerServiceHandler handler) {
+	/*
+	 import reactor.core.publisher.Flux;
+	 import reactor.core.publisher.Sinks;
+
+	 oder cursor an die rote stelle und alt + enter -> import class
+	 */
+
+	public synchronized Flux<ConsumerRecord<String, String>> register(String topic, MessageConsumerServiceHandler handler) {
 		this.topics.put(topic, handler);
 		this.hasToUpdate = true;
 		logger.info("Add subscribe for " + topic);
 		this.start();
+		return this.flux.filter(record -> record.topic().equals(topic));
 	}
 
 	@PreDestroy

@@ -2,6 +2,7 @@ package de.thi.informatik.edi.shop.checkout.services;
 
 import java.net.UnknownHostException;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import de.thi.informatik.edi.shop.checkout.services.messages.CartMessage;
 import de.thi.informatik.edi.shop.checkout.services.messages.CreatedCartMessage;
 import de.thi.informatik.edi.shop.checkout.services.messages.DeleteArticleFromCartMessage;
 import jakarta.annotation.PostConstruct;
+import reactor.core.publisher.Flux;
 
 @Service
 public class CartMessageConsumerService implements MessageConsumerService.MessageConsumerServiceHandler {
@@ -29,45 +31,53 @@ public class CartMessageConsumerService implements MessageConsumerService.Messag
 	private String topic;
 	
 	private MessageConsumerService consumer;
-	private ShoppingOrderService orders;
+	private Flux<CartMessage> flux;
 
-	public CartMessageConsumerService(@Autowired ShoppingOrderService orders, @Autowired MessageConsumerService consumer) {
-		this.orders = orders;
+	public CartMessageConsumerService(@Autowired MessageConsumerService consumer) {
 		this.consumer = consumer;
 	}
-	
-	@PostConstruct
-	private void init() {
-		this.consumer.register(topic, this);
-	}
 
-	@Override
-	public void handle(String topic, String key, String value) {
+	private CartMessage apply(ConsumerRecord<String, String> record) {
+		String value = record.value();
 		logger.info("Received message " + value);
 		try {
-			CartMessage message = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).readValue(value, CartMessage.class);
-			if(message instanceof ArticleAddedToCartMessage) {
-				logger.info("Article added to cart " + ((ArticleAddedToCartMessage) message).getId());
-				this.orders.addItemToOrderByCartRef(
-						((ArticleAddedToCartMessage) message).getId(),
-						((ArticleAddedToCartMessage) message).getArticle(),
-						((ArticleAddedToCartMessage) message).getName(),
-						((ArticleAddedToCartMessage) message).getPrice(),
-						((ArticleAddedToCartMessage) message).getCount());
-			} else if(message instanceof DeleteArticleFromCartMessage) {
-				logger.info("Article removed from cart " + ((DeleteArticleFromCartMessage) message).getId());
-				this.orders.deleteItemFromOrderByCartRef(
-						((DeleteArticleFromCartMessage) message).getId(),
-						((DeleteArticleFromCartMessage) message).getArticle());
-			} else if(message instanceof CreatedCartMessage) {
-				logger.info("Cart created " + ((CreatedCartMessage) message).getId());
-				this.orders.createOrderWithCartRef(((CreatedCartMessage) message).getId());
-
-			}
+			CartMessage message = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+					.readValue(value, CartMessage.class);
+			return message;
 		} catch (JsonMappingException e) {
 			e.printStackTrace();
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
+		return new CartMessage();
+	}
+
+	@PostConstruct
+	private void init() {
+		Flux<ConsumerRecord<String, String>> register = this.consumer.register(topic, this);
+		// Umwandeln von String in ein passendes Objekt vom Typ ArticleAddedToCartMessage,
+		// DeleteArticleFromCartMessage oder CreatedCartMessage
+		this.flux = register.map(this::apply); // private Flux<CartMessage> flux;
+	}
+
+	public Flux<CreatedCartMessage> getCreatedCartMessages() {
+		return this.flux
+				.filter(obj -> obj instanceof CreatedCartMessage)
+				.map(obj -> (CreatedCartMessage) obj);
+	}
+	public Flux<ArticleAddedToCartMessage> getArticleAddedToCartMessages() {
+		return this.flux
+				.filter(obj -> obj instanceof ArticleAddedToCartMessage)
+				.map(obj -> (ArticleAddedToCartMessage) obj);
+	}
+	public Flux<DeleteArticleFromCartMessage> getDeleteArticleFromCartMessages() {
+		return this.flux
+				.filter(obj -> obj instanceof DeleteArticleFromCartMessage)
+				.map(obj -> (DeleteArticleFromCartMessage) obj);
+	}
+
+	@Override
+	public void handle(String topic, String key, String value) {
+		logger.info("Received message " + value);
 	}
 }
