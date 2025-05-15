@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.thi.informatik.edi.shop.checkout.services.messages.ShippingMessage;
+import reactor.core.publisher.Flux;
 
 @Service
 public class ShippingMessageConsumerService implements MessageConsumerService.MessageConsumerServiceHandler {
@@ -24,33 +25,33 @@ public class ShippingMessageConsumerService implements MessageConsumerService.Me
 
 	@Value("${kafka.shippingTopic:shipping}")
 	private String topic;
-	
-	private ShoppingOrderService orders;
-    private final MessageConsumerService consumer;
 
-    public ShippingMessageConsumerService(@Autowired ShoppingOrderService orders, @Autowired MessageConsumerService consumer) {
-		this.orders = orders;
+    private final MessageConsumerService consumer;
+	private Flux<ShippingMessage> messages;
+
+	public ShippingMessageConsumerService(@Autowired MessageConsumerService consumer) {
         this.consumer = consumer;
     }
 
 	@PostConstruct
 	private void init() {
-		this.consumer.register(topic, this);
+		this.messages = this.consumer.register(topic, this).map(record -> {
+			String value = record.value();
+			logger.info("Received message " + value);
+			try {
+				ShippingMessage message = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).readValue(value, ShippingMessage.class);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return new ShippingMessage();
+		});
+	}
+
+	public Flux<ShippingMessage> getMessages() {
+		return messages;
 	}
 
 	@Override
 	public void handle(String topic, String key, String value) {
-		logger.info("Received message " + value);
-		try {
-			ShippingMessage message = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).readValue(value, ShippingMessage.class);
-			logger.info("Update order " + message.getOrderRef());
-			if("SHIPPED".equals(message.getStatus())) {
-				this.orders.updateOrderIsShipped(message.getOrderRef());
-			} else {
-				logger.info("Unknown shipping status " + message.getStatus() + " for order " + message.getOrderRef());
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 }

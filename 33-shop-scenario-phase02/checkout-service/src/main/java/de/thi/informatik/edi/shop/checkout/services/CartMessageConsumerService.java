@@ -78,6 +78,5 @@ public class CartMessageConsumerService implements MessageConsumerService.Messag
 
 	@Override
 	public void handle(String topic, String key, String value) {
-		logger.info("Received message " + value);
 	}
 }

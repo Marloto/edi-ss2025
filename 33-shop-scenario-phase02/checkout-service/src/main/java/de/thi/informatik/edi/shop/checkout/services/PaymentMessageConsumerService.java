@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.thi.informatik.edi.shop.checkout.services.messages.PaymentMessage;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import reactor.core.publisher.Flux;
 
 @Service
 public class PaymentMessageConsumerService implements MessageConsumerService.MessageConsumerServiceHandler {
@@ -33,33 +34,33 @@ public class PaymentMessageConsumerService implements MessageConsumerService.Mes
 	private String topic;
 	
 	private MessageConsumerService consumer;
-	private ShoppingOrderService orders;
+	private Flux<PaymentMessage> messages;
 
-	public PaymentMessageConsumerService(@Autowired ShoppingOrderService orders, @Autowired MessageConsumerService consumer) {
-		this.orders = orders;
+	public PaymentMessageConsumerService(@Autowired MessageConsumerService consumer) {
 		this.consumer = consumer;
+	}
+
+	private PaymentMessage apply(ConsumerRecord<String, String> record) {
+		String value = record.value();
+		logger.info("Received message " + value);
+		try {
+			return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).readValue(value, PaymentMessage.class);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return new PaymentMessage();
 	}
 
 	@PostConstruct
 	private void init() {
-		this.consumer.register(topic, this);
+		this.messages = this.consumer.register(topic, this).map(this::apply);
+	}
+
+	public Flux<PaymentMessage> getMessages() {
+		return messages;
 	}
 
 	@Override
 	public void handle(String topic, String key, String value) {
-		logger.info("Received message " + value);
-		try {
-			PaymentMessage message = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).readValue(value, PaymentMessage.class);
-			logger.info("Update order " + message.getOrderRef());
-			if("PAYED".equals(message.getStatus())) {
-				this.orders.updateOrderIsPayed(message.getOrderRef());
-			} else if("PAYABLE".equals(message.getStatus())) {
-				logger.info("Ignore status change " + message.getStatus() + " for order " + message.getOrderRef() + " and payment " + message.getId());
-			} else {
-				logger.info("Unknown status change " + message.getStatus() + " for order " + message.getOrderRef() + " and payment " + message.getId());
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 }

@@ -17,16 +17,24 @@ public class ShoppingOrderService {
 	private ShoppingOrderRepository orders;
 	private ShoppingOrderMessageProducerService messages;
     private final CartMessageConsumerService cartMessages;
+    private final PaymentMessageConsumerService paymentMessages;
+    private final ShippingMessageConsumerService shippingMessages;
 
     public ShoppingOrderService(@Autowired ShoppingOrderRepository orders, 
-			@Autowired ShoppingOrderMessageProducerService messages, CartMessageConsumerService cartMessages) {
+			@Autowired ShoppingOrderMessageProducerService messages,
+			@Autowired CartMessageConsumerService cartMessages,
+			@Autowired PaymentMessageConsumerService paymentMessages,
+			@Autowired ShippingMessageConsumerService shippingMessages) {
 		this.orders = orders;
 		this.messages = messages;
         this.cartMessages = cartMessages;
+        this.paymentMessages = paymentMessages;
+        this.shippingMessages = shippingMessages;
     }
 	
 	@PostConstruct
 	private void init() {
+		// Anbindung an Cart-Messages
 		this.cartMessages.getCreatedCartMessages().subscribe(message -> {
 			this.createOrderWithCartRef(message.getId());
 		});
@@ -43,7 +51,18 @@ public class ShoppingOrderService {
 				message.getId(),
 				message.getArticle());
 		});
-		// ... zzgl. article added und deleted
+		// Anbindung an Payment-Messages
+		this.paymentMessages.getMessages()
+				.filter(el -> "PAYED".equals(el.getStatus()))
+				.subscribe(message -> {
+					this.updateOrderIsPayed(message.getOrderRef());
+				});
+		// Anbindung an Shipping-Messages
+		this.shippingMessages.getMessages()
+				.filter(el -> "SHIPPED".equals(el.getStatus()))
+				.subscribe(message -> {
+					this.updateOrderIsShipped(message.getOrderRef());
+				});
 	}
 	
 	public void addItemToOrderByCartRef(UUID cartRef, UUID article, String name, double price, int count) {
