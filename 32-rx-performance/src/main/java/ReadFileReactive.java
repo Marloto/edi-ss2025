@@ -98,7 +98,5 @@ public class ReadFileReactive {
 						complete.run();
 					}
 				}); // complete is called multiple times
-
-		new ArrayList<>().stream().filt
 	}
 }

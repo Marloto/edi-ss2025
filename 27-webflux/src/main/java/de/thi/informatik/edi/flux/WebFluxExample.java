@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import reactor.adapter.JdkFlowAdapter;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
@@ -159,17 +160,24 @@ public class WebFluxExample<T> {
 //						Tuples.of(a.getT1() + b.getT1(), a.getT2() + b.getT2()))
 //					.map((t) -> t.getT1() / t.getT2());
 //		}).subscribe(System.out::println);
+//
+//		Flux<Double> test = Flux.fromArray(new Double[] {1.0, 5.0, 2.0, 3.0, 7.0, 2.0, 4.0, 9.0, 3.0})
+//			.buffer(3)
+//			.flatMap(listFromBuffer ->
+//				Flux.fromIterable(listFromBuffer)
+//						.map(bufferEl -> Tuples.of(bufferEl, 1))
+//						.reduce((a, b) ->
+//								Tuples.of(a.getT1() + b.getT1(), a.getT2() + b.getT2()))
+//						.map((t) -> t.getT1() / t.getT2())
+//				);
 
-		Flux.fromArray(new Double[] {1.0, 5.0, 2.0, 3.0, 7.0, 2.0, 4.0, 9.0, 3.0})
-			.buffer(3)
-			.flatMap(listFromBuffer ->
-				Flux.fromIterable(listFromBuffer)
-						.map(bufferEl -> Tuples.of(bufferEl, 1))
-						.reduce((a, b) ->
-								Tuples.of(a.getT1() + b.getT1(), a.getT2() + b.getT2()))
-						.map((t) -> t.getT1() / t.getT2())
-				)
-			.subscribe(System.out::println);
+		Hooks.onOperatorDebug();
+
+		Flux.just("Orange", "Red", "Yellow")
+				.filter(el -> el != null)
+				.map(el -> 
+					el.substring(0, 4))
+				.subscribe(System.out::println);
 
 		// Prevent stopping of main thread
 		System.in.read();

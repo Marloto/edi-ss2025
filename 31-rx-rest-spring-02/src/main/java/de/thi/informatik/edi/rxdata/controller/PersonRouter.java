@@ -23,7 +23,8 @@ public class PersonRouter {
 	public RouterFunction<ServerResponse> compose(PersonService service) {
 		return
 				route(GET("/api/v1/person"), 
-						req -> ok().body(service.listAll().map(PersonResponse::fromPerson), PersonResponse.class))
+						req -> ok().body(service.listAll()
+								.map(PersonResponse::fromPerson), PersonResponse.class))
 				.and(route(GET("/api/v1/person/{id}"), 
 						req -> ok().body(service.getById(UUID.fromString(req.pathVariable("id"))).map(PersonResponse::fromPerson), PersonResponse.class)))
 				.and(route(POST("/api/v1/person"), 
