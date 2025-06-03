@@ -25,6 +25,28 @@ public class RepartitionExample {
 		config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Void().getClass());
 		config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
+		// Was war "Depth-First Processing"? Wenn eine Nachricht empfangen wird, wird diese
+		// in der vollständigen Datenstromverarbeitung behandelt
+		// Es gibt "Sub-Topologien" - man kann diese Depth-First-Verarbeitung
+		// bis zum Beginn der Sub-Topologie durchführen, unterbricht diese Sequenz und
+		// führt die folgenden Schritte in einem eigenen "Depth-First-Processing-Ansatz" aus.
+
+		// Warum sind "unterbrechungen" der Datenstromverarbeitungsketten in
+		// Kafka Streams wichtig bzw. ggf. notwendig?
+		// -> Ziel: "repartitionierung"
+		// -> "repartion()"
+		Map<String, KStream<Void, String>> map = builder.<Void, String>stream("hello-world")
+			.split(Named.as("Branch-"))
+			.branch((key, value) -> !value.isBlank(), Branched.as("A"))
+			.defaultBranch(Branched.as("B"));
+
+		map.get("Branch-B")
+			.mapValues(value -> "unknown")
+			.merge(map.get("Branch-A"))
+			.repartition() // <- startet eine neue Sub-Topologie, unterbricht den "Depth-First" Ansatz
+			.mapValues(value -> "Hello " + value + "!")
+			.to("hello-world-answer");
+
 		KafkaStreams streams = new KafkaStreams(builder.build(), config);
 		streams.start();
 
