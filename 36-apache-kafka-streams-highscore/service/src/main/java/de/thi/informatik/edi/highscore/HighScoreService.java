@@ -2,10 +2,7 @@ package de.thi.informatik.edi.highscore;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.springframework.stereotype.Service;
 
@@ -46,9 +43,14 @@ public class HighScoreService extends MessageConsumerService {
 			return null;
 		}
 	}
-	
+
 	public Flux<Enriched> get(Long id) {
 		return Flux.fromIterable(this.last.get(id.toString()));
+	}
+
+	public Flux<Enriched> getAll() {
+		Collection<List<Enriched>> values = this.last.values();
+		return Flux.fromIterable(values).flatMap(list -> Flux.fromIterable(list));
 	}
 	
 	@Override
@@ -58,7 +60,7 @@ public class HighScoreService extends MessageConsumerService {
 
 	@Override
 	protected String getTopic() {
-		return "high-scores";
+		return "leader-boards";
 	}
 
 }
