@@ -70,7 +70,7 @@ public class PatientMonitoringTopology {
 			(pulseRate, bodyTemp) -> new CombinedVitals(pulseRate.intValue(), bodyTemp),
 			joinWindows,
 			StreamJoined.with(Serdes.String(), Serdes.Long(), JsonSerdes.bodyTemp()));
-		
+
 		vitals.to(Configurator.ALERTS, Produced.with(Serdes.String(), JsonSerdes.combinedVitals()));
 		vitals.print(Printed.toSysOut()); // debugging
 

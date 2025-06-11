@@ -23,9 +23,9 @@ public class WebFluxExample<T> {
 		Mono<String> mono = Mono.just("Hello");
 		Flux<String> other = Flux.just("Hello");
 
-		other.subscribe(); //neben Subscriber an sich, gibt es auch abwandlungen z.B. ein Consumer
+		// other.subscribe(); //neben Subscriber an sich, gibt es auch abwandlungen z.B. ein Consumer
 		// void doSomething(T t)
-		other.subscribe(System.out::println);
+		// other.subscribe(System.out::println);
 
 		// Erzeugen von einer unendlichen Liste an Ereignissen pro Sekunde
 		//Flux.interval(Duration.ofSeconds(1)).subscribe(System.out::println);
@@ -117,20 +117,20 @@ public class WebFluxExample<T> {
 //						.reduce((a, b) -> a + b)
 //						.subscribe(System.out::println));
 
-		Flux<Long> flux1 = Flux.interval(Duration.ofSeconds(1));
-		Flux<Flux<Long>> window = flux1.window(Duration.ofSeconds(3));
-		Flux<Long> reducedWindow = window.flatMap(win -> win.reduce((a, b) -> a + b));
-		reducedWindow.subscribe(System.out::println);
-
-		Flux<Double> flux = Flux.fromArray(new Double[] {1.0, 5.0, 2.0, 3.0, 7.0, 2.0, 4.0, 9.0, 3.0});
-		Mono<Long> count = flux.count();
-		Mono<Double> reduce = flux.reduce((a, b) -> a + b);
-		Flux.concat(count, reduce).reduce((a, b) -> b.doubleValue() / a.doubleValue());
-
-		flux.map(el -> Tuples.of(el, 1)).reduce((a, b) ->
-				Tuples.of(a.getT1() + b.getT1(), a.getT2() + b.getT2())).map((t) -> t.getT1() / t.getT2());
-
-		Flux.interval(Duration.ofSeconds(3)).buffer(3);
+//		Flux<Long> flux1 = Flux.interval(Duration.ofSeconds(1));
+//		Flux<Flux<Long>> window = flux1.window(Duration.ofSeconds(3));
+//		Flux<Long> reducedWindow = window.flatMap(win -> win.reduce((a, b) -> a + b));
+//		reducedWindow.subscribe(System.out::println);
+//
+//		Flux<Double> flux = Flux.fromArray(new Double[] {1.0, 5.0, 2.0, 3.0, 7.0, 2.0, 4.0, 9.0, 3.0});
+//		Mono<Long> count = flux.count();
+//		Mono<Double> reduce = flux.reduce((a, b) -> a + b);
+//		Flux.concat(count, reduce).reduce((a, b) -> b.doubleValue() / a.doubleValue());
+//
+//		flux.map(el -> Tuples.of(el, 1)).reduce((a, b) ->
+//				Tuples.of(a.getT1() + b.getT1(), a.getT2() + b.getT2())).map((t) -> t.getT1() / t.getT2());
+//
+//		Flux.interval(Duration.ofSeconds(3)).buffer(3);
 
 //		Flux<Double> flux2 = Flux.fromArray(new Double[] {1.0, 5.0, 2.0, 3.0, 7.0, 2.0, 4.0, 9.0, 3.0});
 //		Flux<List<Double>> buffer = flux2.buffer(3);
@@ -171,13 +171,21 @@ public class WebFluxExample<T> {
 //						.map((t) -> t.getT1() / t.getT2())
 //				);
 
-		Hooks.onOperatorDebug();
+//		Hooks.onOperatorDebug();
+//
+//		Flux.just("Orange", "Red", "Yellow")
+//				.filter(el -> el != null)
+//				.map(el ->
+//					el.substring(0, 4))
+//				.subscribe(System.out::println);
 
-		Flux.just("Orange", "Red", "Yellow")
-				.filter(el -> el != null)
-				.map(el -> 
-					el.substring(0, 4))
-				.subscribe(System.out::println);
+		long start = System.nanoTime();
+		Flux.interval(Duration.ofSeconds(1))
+			.window(3)
+			.subscribe(win -> win
+				.doOnNext(el -> System.out.println("peek: " + el + " " + (System.nanoTime() - start)))
+				.reduce((a, b) -> a + b)
+				.subscribe(System.out::println));
 
 		// Prevent stopping of main thread
 		System.in.read();

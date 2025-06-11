@@ -1,6 +1,6 @@
 version: "3"
 services:
-  # Starts zookeeper
+  # Starts kafka, can be accessed from port 9092
   kafka:
     image: 'bitnami/kafka:3.6.0'
     ports:
