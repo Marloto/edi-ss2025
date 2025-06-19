@@ -61,7 +61,7 @@ public class JsonHelloWorld {
                 .build();
 
         env.fromSource(source, WatermarkStrategy.noWatermarks(), "hello-world")
-                .map((value) -> "Hello, " + value)
+                .map((value) -> "Hello, " + value.getName())
                 .sinkTo(sink);
 
         env.execute("Hello World");
